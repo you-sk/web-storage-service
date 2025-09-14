@@ -273,7 +273,7 @@ MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照してくださ�
 
 ## 作者
 
-[Your Name]
+[you-sk](https://github.com/you-sk)
 
 ## 謝辞
 

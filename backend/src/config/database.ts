@@ -1,0 +1,131 @@
+import sqlite3 from 'sqlite3';
+import path from 'path';
+import fs from 'fs';
+
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../../data/storage.db');
+const dbDir = path.dirname(dbPath);
+
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+export const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Error opening database:', err);
+  } else {
+    console.log('Connected to SQLite database');
+  }
+});
+
+export const initializeDatabase = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.run(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `, (err) => {
+        if (err) {
+          console.error('Error creating users table:', err);
+          reject(err);
+          return;
+        }
+      });
+
+      db.run(`
+        CREATE TABLE IF NOT EXISTS files (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          filename TEXT NOT NULL,
+          original_name TEXT NOT NULL,
+          mimetype TEXT,
+          size INTEGER,
+          path TEXT NOT NULL,
+          metadata TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+      `, (err) => {
+        if (err) {
+          console.error('Error creating files table:', err);
+          reject(err);
+          return;
+        }
+      });
+
+      db.run(`
+        CREATE TABLE IF NOT EXISTS tags (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT UNIQUE NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `, (err) => {
+        if (err) {
+          console.error('Error creating tags table:', err);
+          reject(err);
+          return;
+        }
+      });
+
+      db.run(`
+        CREATE TABLE IF NOT EXISTS file_tags (
+          file_id INTEGER NOT NULL,
+          tag_id INTEGER NOT NULL,
+          PRIMARY KEY (file_id, tag_id),
+          FOREIGN KEY (file_id) REFERENCES files (id) ON DELETE CASCADE,
+          FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
+        )
+      `, (err) => {
+        if (err) {
+          console.error('Error creating file_tags table:', err);
+          reject(err);
+          return;
+        }
+        console.log('Database tables created successfully');
+        resolve();
+      });
+    });
+  });
+};
+
+export const runQuery = <T = any>(sql: string, params: any[] = []): Promise<T[]> => {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows as T[]);
+      }
+    });
+  });
+};
+
+export const runSingle = <T = any>(sql: string, params: any[] = []): Promise<T | undefined> => {
+  return new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row as T);
+      }
+    });
+  });
+};
+
+export const runInsert = (sql: string, params: any[] = []): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.lastID);
+      }
+    });
+  });
+};

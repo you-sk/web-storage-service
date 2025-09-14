@@ -1,0 +1,285 @@
+# Web Storage Service
+
+電子データの保存とメタデータ管理を行うWebアプリケーションです。ファイルをアップロードし、タグやカテゴリなどのメタデータを付与して管理できます。
+
+## 特徴
+
+- 🔐 **セキュアな認証**: JWT認証によるセキュアなアクセス管理
+- 📁 **ファイル管理**: 様々な形式のファイルをアップロード・保存
+- 🏷️ **メタデータ管理**: ファイルにタグやカテゴリを付与して整理
+- 🔍 **検索機能**: メタデータを使った効率的な検索（実装予定）
+- 🐳 **Docker対応**: Docker Composeによる簡単な環境構築
+- 📱 **レスポンシブデザイン**: モバイル・デスクトップ両対応
+
+## 技術スタック
+
+### フロントエンド
+- **React 18** - UIライブラリ
+- **TypeScript** - 型安全な開発
+- **Vite** - 高速な開発環境
+- **TailwindCSS** - ユーティリティファーストCSS
+- **React Router** - ルーティング
+- **Zustand** - 状態管理
+- **React Query** - サーバー状態管理
+
+### バックエンド
+- **Node.js** - JavaScriptランタイム
+- **Express** - Webフレームワーク
+- **TypeScript** - 型安全な開発
+- **SQLite** - 軽量データベース（開発環境）
+- **JWT** - 認証トークン
+- **bcrypt** - パスワードハッシュ化
+- **Multer** - ファイルアップロード処理
+
+### インフラ
+- **Docker** - コンテナ化
+- **Docker Compose** - マルチコンテナ管理
+- **Nginx** - リバースプロキシ
+
+## 必要環境
+
+- Docker Desktop (Windows/Mac) または Docker Engine (Linux)
+- Docker Compose
+- Git
+
+## セットアップ
+
+### 1. リポジトリのクローン
+
+```bash
+git clone https://github.com/[your-username]/web-storage-service.git
+cd web-storage-service
+```
+
+### 2. 環境変数の設定
+
+```bash
+cp .env.example .env
+# 必要に応じて.envファイルを編集
+```
+
+### 3. Dockerコンテナの起動
+
+```bash
+# 初回起動（ビルド込み）
+docker-compose up --build
+
+# 2回目以降
+docker-compose up
+
+# バックグラウンドで起動
+docker-compose up -d
+```
+
+### 4. アプリケーションへのアクセス
+
+起動が完了したら、以下のURLでアクセスできます：
+
+- **アプリケーション**: http://localhost:8080
+- **API（直接アクセス）**: http://localhost:3001
+- **開発用フロントエンド**: http://localhost:5173
+
+## 使い方
+
+### 初回利用
+
+1. ブラウザで http://localhost:8080 にアクセス
+2. 「Don't have an account? Sign up」をクリックして新規アカウント作成
+3. ユーザー名、メールアドレス、パスワードを入力して登録
+4. 登録完了後、自動的にログインされダッシュボードへ遷移
+
+### ファイルのアップロード
+
+1. ダッシュボードの「File Upload」セクションで「Choose File」をクリック
+2. アップロードしたいファイルを選択
+3. 「Upload File」ボタンをクリック
+4. アップロード完了後、ファイル一覧に表示される
+
+### ログアウト
+
+画面右上の「Logout」ボタンをクリック
+
+## 開発
+
+### ディレクトリ構成
+
+```
+web-storage-service/
+├── backend/               # バックエンドアプリケーション
+│   ├── src/
+│   │   ├── config/       # 設定ファイル
+│   │   ├── controllers/  # コントローラー
+│   │   ├── middleware/   # ミドルウェア
+│   │   ├── models/       # データモデル
+│   │   ├── routes/       # APIルート
+│   │   ├── utils/        # ユーティリティ
+│   │   └── index.ts      # エントリーポイント
+│   ├── Dockerfile.dev    # 開発用Dockerfile
+│   ├── package.json
+│   └── tsconfig.json
+├── frontend/             # フロントエンドアプリケーション
+│   ├── src/
+│   │   ├── components/   # UIコンポーネント
+│   │   ├── hooks/        # カスタムフック
+│   │   ├── pages/        # ページコンポーネント
+│   │   ├── services/     # API通信
+│   │   ├── store/        # 状態管理
+│   │   ├── types/        # 型定義
+│   │   └── App.tsx       # メインコンポーネント
+│   ├── Dockerfile.dev    # 開発用Dockerfile
+│   ├── package.json
+│   └── vite.config.ts
+├── nginx/                # Nginx設定
+│   └── nginx.conf
+├── data/                 # SQLiteデータベース（gitignore）
+├── uploads/              # アップロードファイル（gitignore）
+├── docker-compose.yml    # Docker Compose設定
+├── .env.example          # 環境変数テンプレート
+├── .gitignore
+└── README.md
+```
+
+### 開発コマンド
+
+```bash
+# コンテナのログを確認
+docker-compose logs -f
+
+# 特定のサービスのログを確認
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# コンテナの再起動
+docker-compose restart
+
+# コンテナの停止
+docker-compose down
+
+# コンテナとボリュームを削除（データも削除）
+docker-compose down -v
+
+# コンテナに入る
+docker-compose exec backend sh
+docker-compose exec frontend sh
+```
+
+### API エンドポイント
+
+#### 認証
+
+- `POST /api/auth/register` - ユーザー登録
+  ```json
+  {
+    "username": "string",
+    "email": "string",
+    "password": "string"
+  }
+  ```
+
+- `POST /api/auth/login` - ログイン
+  ```json
+  {
+    "username": "string",
+    "password": "string"
+  }
+  ```
+
+- `GET /api/auth/me` - ユーザー情報取得（要認証）
+
+#### ファイル管理
+
+- `POST /api/files/upload` - ファイルアップロード（要認証）
+  - multipart/form-data
+  - フィールド: `file`, `metadata`（オプション）
+
+- `GET /api/files` - ファイル一覧取得（要認証）
+
+- `GET /api/files/:id` - ファイル詳細取得（要認証）
+
+#### ヘルスチェック
+
+- `GET /api/health` - APIの稼働状態確認
+
+## トラブルシューティング
+
+### ポートが使用中の場合
+
+他のアプリケーションが同じポートを使用している場合：
+
+```bash
+# 使用中のポートを確認
+lsof -i :8080
+lsof -i :3001
+lsof -i :5173
+
+# docker-compose.ymlでポートを変更
+# 例: 8080:80 → 8081:80
+```
+
+### データベースのリセット
+
+```bash
+# データベースファイルを削除
+rm -rf data/*
+
+# コンテナを再起動
+docker-compose restart backend
+```
+
+### 依存関係の更新
+
+```bash
+# バックエンドの依存関係更新
+docker-compose exec backend npm update
+
+# フロントエンドの依存関係更新
+docker-compose exec frontend npm update
+
+# イメージの再ビルド
+docker-compose build --no-cache
+```
+
+## 今後の実装予定
+
+- [ ] ファイル検索・フィルタリング機能
+- [ ] タグ・カテゴリの詳細管理
+- [ ] ファイルプレビュー機能
+- [ ] 複数ファイルの一括アップロード
+- [ ] ファイルのダウンロード機能
+- [ ] ユーザー権限管理
+- [ ] ファイル共有機能
+- [ ] バージョン管理
+- [ ] PostgreSQL対応（本番環境用）
+- [ ] S3等のクラウドストレージ対応
+
+## セキュリティ
+
+- パスワードは bcrypt でハッシュ化して保存
+- JWT トークンによる認証（有効期限: 7日）
+- 環境変数による機密情報の管理
+- CORS設定による不正なアクセスの防止
+
+## コントリビューション
+
+1. このリポジトリをフォーク
+2. フィーチャーブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
+4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
+5. プルリクエストを作成
+
+## ライセンス
+
+MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照してください。
+
+## 作者
+
+[Your Name]
+
+## 謝辞
+
+このプロジェクトは以下の素晴らしいオープンソースプロジェクトを使用しています：
+
+- React
+- Node.js
+- Docker
+- その他多くのオープンソースライブラリ

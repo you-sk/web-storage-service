@@ -44,6 +44,14 @@ export default function Dashboard() {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
   }
 
+  const handleDownload = async (fileId: string, filename: string) => {
+    try {
+      await fileService.downloadFile(fileId, filename)
+    } catch (error) {
+      console.error('Download failed:', error)
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <div className="px-4 py-6 sm:px-0">
@@ -78,7 +86,7 @@ export default function Dashboard() {
               {files.map((file: any) => (
                 <div key={file.id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1">
                       <h4 className="font-semibold">{file.original_name}</h4>
                       <p className="text-sm text-gray-600">
                         Size: {formatFileSize(file.size)} | Type: {file.mimetype}
@@ -87,6 +95,12 @@ export default function Dashboard() {
                         Uploaded: {new Date(file.created_at).toLocaleString()}
                       </p>
                     </div>
+                    <button
+                      onClick={() => handleDownload(file.id, file.original_name)}
+                      className="ml-4 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                    >
+                      Download
+                    </button>
                   </div>
                 </div>
               ))}

@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
-import { runQuery, runInsert, runSingle } from '../config/database';
+import { runQuery, runInsert, runSingle, runDelete } from '../config/database';
 
 const router = Router();
 
@@ -130,6 +130,43 @@ router.get('/:id/download', authenticateToken, async (req: AuthRequest, res: Res
   } catch (error) {
     console.error('Download error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const file = await runSingle(
+      `SELECT * FROM files WHERE id = ? AND user_id = ?`,
+      [req.params.id, req.userId]
+    );
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const filePath = file.path as string;
+
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        console.error('Error deleting file from disk:', err);
+      }
+    }
+
+    const deletedCount = await runDelete(
+      `DELETE FROM files WHERE id = ? AND user_id = ?`,
+      [req.params.id, req.userId]
+    );
+
+    if (deletedCount === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    return res.json({ message: 'File deleted successfully' });
+  } catch (error) {
+    console.error('Delete error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

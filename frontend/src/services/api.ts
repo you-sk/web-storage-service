@@ -72,4 +72,8 @@ export const fileService = {
     link.remove()
     window.URL.revokeObjectURL(url)
   },
+  deleteFile: async (id: string) => {
+    const response = await api.delete(`/api/files/${id}`)
+    return response.data
+  },
 }

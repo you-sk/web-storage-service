@@ -129,3 +129,15 @@ export const runInsert = (sql: string, params: any[] = []): Promise<number> => {
     });
   });
 };
+
+export const runDelete = (sql: string, params: any[] = []): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.changes);
+      }
+    });
+  });
+};

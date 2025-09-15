@@ -5,6 +5,7 @@ import { fileService } from '../services/api'
 export default function Dashboard() {
   const queryClient = useQueryClient()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
 
   const { data: files, isLoading } = useQuery({
     queryKey: ['files'],
@@ -21,6 +22,16 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files'] })
       setSelectedFile(null)
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return fileService.deleteFile(id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      setDeleteConfirm(null)
     },
   })
 
@@ -49,6 +60,16 @@ export default function Dashboard() {
       await fileService.downloadFile(fileId, filename)
     } catch (error) {
       console.error('Download failed:', error)
+    }
+  }
+
+  const handleDelete = (id: string, name: string) => {
+    setDeleteConfirm({ id, name })
+  }
+
+  const confirmDelete = () => {
+    if (deleteConfirm) {
+      deleteMutation.mutate(deleteConfirm.id)
     }
   }
 
@@ -95,12 +116,20 @@ export default function Dashboard() {
                         Uploaded: {new Date(file.created_at).toLocaleString()}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleDownload(file.id, file.original_name)}
-                      className="ml-4 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
-                    >
-                      Download
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleDownload(file.id, file.original_name)}
+                        className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                      >
+                        Download
+                      </button>
+                      <button
+                        onClick={() => handleDelete(file.id, file.original_name)}
+                        className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -110,6 +139,32 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Confirm Delete</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete "{deleteConfirm.name}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleteMutation.isPending}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

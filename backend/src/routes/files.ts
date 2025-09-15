@@ -98,4 +98,39 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response): P
   }
 });
 
+router.get('/:id/download', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const file = await runSingle(
+      `SELECT * FROM files WHERE id = ? AND user_id = ?`,
+      [req.params.id, req.userId]
+    );
+
+    if (!file) {
+      res.status(404).json({ error: 'File not found' });
+      return;
+    }
+
+    const filePath = file.path as string;
+
+    if (!fs.existsSync(filePath)) {
+      res.status(404).json({ error: 'File not found on disk' });
+      return;
+    }
+
+    const originalName = file.original_name as string;
+
+    res.download(filePath, originalName, (err) => {
+      if (err) {
+        console.error('Download error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Download failed' });
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Download error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

@@ -80,6 +80,49 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
   }
 });
 
+router.get('/search', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const { query = '', tagIds = '', type = '' } = req.query;
+
+    let sql = `
+      SELECT DISTINCT f.id, f.filename, f.original_name, f.mimetype, f.size, f.metadata, f.created_at
+      FROM files f
+      LEFT JOIN file_tags ft ON f.id = ft.file_id
+      WHERE f.user_id = ?
+    `;
+
+    const params: any[] = [req.userId];
+
+    if (query && typeof query === 'string') {
+      sql += ` AND (f.original_name LIKE ? OR f.metadata LIKE ?)`;
+      const searchPattern = `%${query}%`;
+      params.push(searchPattern, searchPattern);
+    }
+
+    if (type && typeof type === 'string') {
+      sql += ` AND f.mimetype LIKE ?`;
+      params.push(`%${type}%`);
+    }
+
+    if (tagIds && typeof tagIds === 'string') {
+      const tagIdArray = tagIds.split(',').filter(id => id);
+      if (tagIdArray.length > 0) {
+        sql += ` AND ft.tag_id IN (${tagIdArray.map(() => '?').join(',')})`;
+        params.push(...tagIdArray);
+      }
+    }
+
+    sql += ` ORDER BY f.created_at DESC`;
+
+    const files = await runQuery(sql, params);
+
+    return res.json({ files });
+  } catch (error) {
+    console.error('Search files error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
     const file = await runSingle(
@@ -130,6 +173,40 @@ router.get('/:id/download', authenticateToken, async (req: AuthRequest, res: Res
   } catch (error) {
     console.error('Download error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.put('/:id/metadata', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const { metadata } = req.body;
+
+    if (!metadata) {
+      return res.status(400).json({ error: 'Metadata is required' });
+    }
+
+    const file = await runSingle(
+      `SELECT * FROM files WHERE id = ? AND user_id = ?`,
+      [req.params.id, req.userId]
+    );
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const metadataString = typeof metadata === 'string' ? metadata : JSON.stringify(metadata);
+
+    await runQuery(
+      `UPDATE files SET metadata = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?`,
+      [metadataString, req.params.id, req.userId]
+    );
+
+    return res.json({
+      message: 'Metadata updated successfully',
+      metadata: JSON.parse(metadataString)
+    });
+  } catch (error) {
+    console.error('Update metadata error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

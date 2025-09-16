@@ -55,6 +55,15 @@ export const fileService = {
     const response = await api.get('/api/files')
     return response.data
   },
+  searchFiles: async (query: string, tagIds: string[], type: string) => {
+    const params = new URLSearchParams()
+    if (query) params.append('query', query)
+    if (tagIds.length > 0) params.append('tagIds', tagIds.join(','))
+    if (type) params.append('type', type)
+
+    const response = await api.get(`/api/files/search?${params.toString()}`)
+    return response.data
+  },
   getFile: async (id: string) => {
     const response = await api.get(`/api/files/${id}`)
     return response.data
@@ -74,6 +83,33 @@ export const fileService = {
   },
   deleteFile: async (id: string) => {
     const response = await api.delete(`/api/files/${id}`)
+    return response.data
+  },
+  updateMetadata: async (id: string, metadata: any) => {
+    const response = await api.put(`/api/files/${id}/metadata`, { metadata })
+    return response.data
+  },
+}
+
+export const tagService = {
+  getTags: async () => {
+    const response = await api.get('/api/tags')
+    return response.data
+  },
+  createTag: async (name: string) => {
+    const response = await api.post('/api/tags', { name })
+    return response.data
+  },
+  deleteTag: async (id: string) => {
+    const response = await api.delete(`/api/tags/${id}`)
+    return response.data
+  },
+  getFileTags: async (fileId: string) => {
+    const response = await api.get(`/api/tags/file/${fileId}`)
+    return response.data
+  },
+  updateFileTags: async (fileId: string, tagIds: string[]) => {
+    const response = await api.post(`/api/tags/file/${fileId}`, { tagIds })
     return response.data
   },
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fileService, tagService } from '../services/api'
+import FilePreview from '../components/FilePreview'
 
 export default function Dashboard() {
   const queryClient = useQueryClient()
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [selectedTagFilter, setSelectedTagFilter] = useState<string[]>([])
   const [selectedTypeFilter, setSelectedTypeFilter] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [previewFile, setPreviewFile] = useState<any | null>(null)
 
   const { data: files, isLoading } = useQuery({
     queryKey: ['files', searchQuery, selectedTagFilter, selectedTypeFilter],
@@ -311,6 +313,12 @@ export default function Dashboard() {
                     </div>
                     <div className="flex gap-2">
                       <button
+                        onClick={() => setPreviewFile(file)}
+                        className="px-3 py-1 bg-indigo-500 text-white text-sm rounded hover:bg-indigo-600"
+                      >
+                        Preview
+                      </button>
+                      <button
                         onClick={() => handleEditTags(file.id)}
                         className="px-3 py-1 bg-purple-500 text-white text-sm rounded hover:bg-purple-600"
                       >
@@ -459,6 +467,14 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {previewFile && (
+        <FilePreview
+          file={previewFile}
+          isOpen={!!previewFile}
+          onClose={() => setPreviewFile(null)}
+        />
       )}
 
       {showTagManager && (

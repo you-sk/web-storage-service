@@ -141,6 +141,76 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response): P
   }
 });
 
+router.get('/:id/preview', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response | void> => {
+  try {
+    const file = await runSingle(
+      `SELECT * FROM files WHERE id = ? AND user_id = ?`,
+      [req.params.id, req.userId]
+    );
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const filePath = file.path as string;
+    const mimetype = file.mimetype as string;
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found on disk' });
+    }
+
+    // 画像ファイルのプレビュー
+    if (mimetype.startsWith('image/')) {
+      res.setHeader('Content-Type', mimetype);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      return res.sendFile(path.resolve(filePath));
+    }
+
+    // PDFファイルのプレビュー
+    if (mimetype === 'application/pdf') {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      return res.sendFile(path.resolve(filePath));
+    }
+
+    // テキストファイルのプレビュー
+    const textMimeTypes = [
+      'text/plain',
+      'text/html',
+      'text/css',
+      'text/javascript',
+      'application/javascript',
+      'application/json',
+      'text/xml',
+      'application/xml',
+      'text/markdown',
+      'text/csv'
+    ];
+
+    if (textMimeTypes.includes(mimetype) || mimetype.startsWith('text/')) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const preview = content.length > 10000 ? content.substring(0, 10000) + '\n...(truncated)' : content;
+      return res.json({
+        type: 'text',
+        content: preview,
+        mimetype: mimetype,
+        truncated: content.length > 10000
+      });
+    }
+
+    // サポートされていないファイル形式
+    return res.status(415).json({
+      error: 'File type not supported for preview',
+      mimetype: mimetype
+    });
+
+  } catch (error) {
+    console.error('Preview error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.get('/:id/download', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const file = await runSingle(

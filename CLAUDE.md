@@ -21,9 +21,9 @@
 - タグ管理システム（タグの作成/削除/ファイルへの付与）
 - ファイル検索・フィルタリング（名前、メタデータ、タグ、ファイルタイプで検索）
 - ファイルプレビュー機能（画像、PDF、テキストファイル対応）
+- 複数ファイル一括アップロード機能（最大10ファイルまで）
 
 #### 🚧 未実装機能
-- 複数ファイル一括アップロード
 - ユーザープロフィール編集
 - パスワード変更機能
 - ファイルの公開/非公開設定
@@ -114,16 +114,7 @@ web-storage-service/
 
 ## 次の開発ステップ（推奨順）
 
-### 1. 複数ファイルの一括アップロード
-```typescript
-// multerの設定をarrayに変更
-upload.array('files', 10) // 最大5ファイルまで
-
-// フロントエンドで複数選択対応
-<input type="file" multiple />
-```
-
-### 2. ユーザープロフィール編集
+### 1. ユーザープロフィール編集
 ```typescript
 // backend/src/routes/users.ts を新規作成
 router.put('/profile', authenticateToken, async (req, res) => {
@@ -131,7 +122,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
 });
 ```
 
-### 3. パスワード変更機能
+### 2. パスワード変更機能
 ```typescript
 // backend/src/routes/auth.ts に追加
 router.post('/change-password', authenticateToken, async (req, res) => {
@@ -140,14 +131,14 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 });
 ```
 
-### 4. ファイルの公開/非公開設定
+### 3. ファイルの公開/非公開設定
 ```typescript
 // filesテーブルにis_publicカラムを追加
 // 公開URL生成機能
 // アクセス制御の実装
 ```
 
-### 5. フォルダ機能
+### 4. フォルダ機能
 ```typescript
 // foldersテーブルの作成
 // フォルダ階層の管理
@@ -264,7 +255,7 @@ VITE_API_URL=http://localhost:3001
 - [x] タグ管理システム ✅ 実装済み
 - [x] 検索・フィルタリング機能 ✅ 実装済み
 - [x] ファイルプレビュー機能 ✅ 実装済み
-- [ ] 複数ファイル一括アップロード
+- [x] 複数ファイル一括アップロード ✅ 実装済み
 - [ ] ユーザープロフィール編集
 - [ ] パスワード変更機能
 - [ ] ファイルの公開/非公開設定
@@ -286,15 +277,14 @@ VITE_API_URL=http://localhost:3001
 
 ## 最後に開発したセッションの情報
 
-- **日時**: 2025-09-17
+- **日時**: 2025-09-18
 - **実装内容**:
-  - ファイルプレビュー機能（画像、PDF、テキストファイル対応）
-  - FilePreviewコンポーネントの作成
-  - プレビューAPIエンドポイントの追加（/api/files/:id/preview）
-  - 認証ミドルウェアの改善（クエリパラメータでのトークンサポート）
-  - lucide-reactアイコンライブラリの追加
-- **ブランチ**: feature/file-preview
-- **次回予定**: 複数ファイル一括アップロード機能またはユーザープロフィール編集機能の実装を推奨
+  - 複数ファイル一括アップロード機能（最大10ファイルまで）
+  - バックエンドAPIエンドポイントの追加（/api/files/upload-multiple）
+  - フロントエンドUIの改善（単一/複数アップロードのセクション分離）
+  - エラーハンドリングの実装（一部ファイルが失敗しても正常ファイルはアップロード）
+- **ブランチ**: feature/multiple-file-upload
+- **次回予定**: ユーザープロフィール編集機能またはパスワード変更機能の実装を推奨
 
 ---
 

@@ -92,10 +92,18 @@ docker-compose up -d
 
 ### ファイルのアップロード
 
-1. ダッシュボードの「File Upload」セクションで「Choose File」をクリック
+#### 単一ファイルのアップロード
+1. ダッシュボードの「Single File Upload」セクションで「Choose File」をクリック
 2. アップロードしたいファイルを選択
 3. 「Upload File」ボタンをクリック
 4. アップロード完了後、ファイル一覧に表示される
+
+#### 複数ファイルの一括アップロード
+1. ダッシュボードの「Multiple Files Upload」セクションで「Choose Files」をクリック
+2. 複数のファイルを選択（最大10ファイルまで）
+3. 選択されたファイル一覧と合計サイズを確認
+4. 「Upload X Files」ボタンをクリック
+5. アップロード完了後、ファイル一覧に表示される
 
 ### ファイルのダウンロード
 
@@ -226,9 +234,13 @@ docker-compose exec frontend sh
 
 #### ファイル管理
 
-- `POST /api/files/upload` - ファイルアップロード（要認証）
+- `POST /api/files/upload` - 単一ファイルアップロード（要認証）
   - multipart/form-data
   - フィールド: `file`, `metadata`（オプション）
+
+- `POST /api/files/upload-multiple` - 複数ファイル一括アップロード（要認証）
+  - multipart/form-data
+  - フィールド: `files[]`（最大10ファイル）, `metadata`（オプション）
 
 - `GET /api/files` - ファイル一覧取得（要認証）
 
@@ -325,7 +337,7 @@ docker-compose build --no-cache
 - [x] メタデータ編集機能
 - [x] ファイルのダウンロード機能
 - [x] ファイルの削除機能
-- [ ] 複数ファイルの一括アップロード
+- [x] 複数ファイルの一括アップロード
 - [ ] ユーザープロフィール編集
 - [ ] パスワード変更機能
 - [ ] ファイルの公開/非公開設定

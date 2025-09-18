@@ -51,6 +51,17 @@ export const fileService = {
     const response = await api.post('/api/files/upload', formData)
     return response.data
   },
+  uploadMultiple: async (files: File[], metadata?: any) => {
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append('files', file)
+    })
+    if (metadata) {
+      formData.append('metadata', JSON.stringify(metadata))
+    }
+    const response = await api.post('/api/files/upload-multiple', formData)
+    return response.data
+  },
   getFiles: async () => {
     const response = await api.get('/api/files')
     return response.data

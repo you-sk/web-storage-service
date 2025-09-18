@@ -6,6 +6,7 @@ import FilePreview from '../components/FilePreview'
 export default function Dashboard() {
   const queryClient = useQueryClient()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
   const [editingMetadata, setEditingMetadata] = useState<{ id: string; metadata: any } | null>(null)
   const [metadataText, setMetadataText] = useState('')
@@ -46,6 +47,16 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files'] })
       setSelectedFile(null)
+    },
+  })
+
+  const uploadMultipleMutation = useMutation({
+    mutationFn: async (files: File[]) => {
+      return fileService.uploadMultiple(files)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      setSelectedFiles([])
     },
   })
 
@@ -104,9 +115,22 @@ export default function Dashboard() {
     }
   }
 
+  const handleMultipleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files)
+      setSelectedFiles(filesArray)
+    }
+  }
+
   const handleUpload = () => {
     if (selectedFile) {
       uploadMutation.mutate(selectedFile)
+    }
+  }
+
+  const handleMultipleUpload = () => {
+    if (selectedFiles.length > 0) {
+      uploadMultipleMutation.mutate(selectedFiles)
     }
   }
 
@@ -193,24 +217,59 @@ export default function Dashboard() {
         <div className="border-4 border-dashed border-gray-200 rounded-lg p-8">
           <h2 className="text-2xl font-bold mb-6">File Upload</h2>
 
-          <div className="mb-8">
-            <input
-              type="file"
-              onChange={handleFileSelect}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-            />
-            {selectedFile && (
-              <div className="mt-2 text-sm text-gray-600">
-                Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-              </div>
-            )}
-            <button
-              onClick={handleUpload}
-              disabled={!selectedFile || uploadMutation.isPending}
-              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {uploadMutation.isPending ? 'Uploading...' : 'Upload File'}
-            </button>
+          <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="border rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3">Single File Upload</h3>
+              <input
+                type="file"
+                onChange={handleFileSelect}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+              />
+              {selectedFile && (
+                <div className="mt-2 text-sm text-gray-600">
+                  Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                </div>
+              )}
+              <button
+                onClick={handleUpload}
+                disabled={!selectedFile || uploadMutation.isPending}
+                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {uploadMutation.isPending ? 'Uploading...' : 'Upload File'}
+              </button>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3">Multiple Files Upload</h3>
+              <input
+                type="file"
+                multiple
+                onChange={handleMultipleFileSelect}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+              />
+              {selectedFiles.length > 0 && (
+                <div className="mt-2 text-sm text-gray-600">
+                  <div className="font-medium">Selected {selectedFiles.length} file(s):</div>
+                  <ul className="mt-1 max-h-32 overflow-y-auto">
+                    {selectedFiles.map((file, index) => (
+                      <li key={index} className="text-xs">
+                        {file.name} ({formatFileSize(file.size)})
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-2 font-medium">
+                    Total size: {formatFileSize(selectedFiles.reduce((acc, file) => acc + file.size, 0))}
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={handleMultipleUpload}
+                disabled={selectedFiles.length === 0 || uploadMultipleMutation.isPending}
+                className="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
+              >
+                {uploadMultipleMutation.isPending ? 'Uploading...' : `Upload ${selectedFiles.length} Files`}
+              </button>
+            </div>
           </div>
 
           <div className="mb-8 p-4 bg-gray-50 rounded-lg">

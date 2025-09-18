@@ -65,6 +65,74 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
   }
 });
 
+router.post('/upload-multiple', authenticateToken, upload.array('files', 10), async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+
+    const uploadedFiles = [];
+    const errors = [];
+
+    for (const file of req.files) {
+      try {
+        const metadata = req.body.metadata ? JSON.stringify(req.body.metadata) : null;
+
+        const fileId = await runInsert(
+          `INSERT INTO files (user_id, filename, original_name, mimetype, size, path, metadata)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            req.userId,
+            file.filename,
+            file.originalname,
+            file.mimetype,
+            file.size,
+            file.path,
+            metadata
+          ]
+        );
+
+        uploadedFiles.push({
+          id: fileId,
+          filename: file.filename,
+          originalName: file.originalname,
+          size: file.size
+        });
+      } catch (error) {
+        console.error(`Error uploading file ${file.originalname}:`, error);
+        errors.push({
+          filename: file.originalname,
+          error: 'Failed to save to database'
+        });
+
+        if (fs.existsSync(file.path)) {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (err) {
+            console.error(`Error deleting file ${file.filename}:`, err);
+          }
+        }
+      }
+    }
+
+    if (uploadedFiles.length === 0) {
+      return res.status(500).json({
+        error: 'Failed to upload any files',
+        errors
+      });
+    }
+
+    return res.status(201).json({
+      message: `Successfully uploaded ${uploadedFiles.length} file(s)`,
+      files: uploadedFiles,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (error) {
+    console.error('Multiple upload error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
     const files = await runQuery(

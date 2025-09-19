@@ -141,6 +141,12 @@ docker-compose up -d
 3. タグでフィルタリング（複数選択可能）
 4. 「Search」ボタンをクリックして検索実行
 
+### ユーザープロフィール管理
+
+1. 画面上部の「Profile」リンクをクリック
+2. ユーザー名やメールアドレスを編集（「Edit Profile」ボタン）
+3. パスワードを変更（「Change Password」ボタン）
+
 ### ログアウト
 
 画面右上の「Logout」ボタンをクリック
@@ -286,6 +292,26 @@ docker-compose exec frontend sh
   }
   ```
 
+#### ユーザー管理
+
+- `GET /api/users/profile` - ユーザープロフィール取得（要認証）
+
+- `PUT /api/users/profile` - ユーザープロフィール更新（要認証）
+  ```json
+  {
+    "username": "string",
+    "email": "string"
+  }
+  ```
+
+- `POST /api/users/change-password` - パスワード変更（要認証）
+  ```json
+  {
+    "currentPassword": "string",
+    "newPassword": "string"
+  }
+  ```
+
 #### ヘルスチェック
 
 - `GET /api/health` - APIの稼働状態確認
@@ -338,8 +364,8 @@ docker-compose build --no-cache
 - [x] ファイルのダウンロード機能
 - [x] ファイルの削除機能
 - [x] 複数ファイルの一括アップロード
-- [ ] ユーザープロフィール編集
-- [ ] パスワード変更機能
+- [x] ユーザープロフィール編集
+- [x] パスワード変更機能
 - [ ] ファイルの公開/非公開設定
 - [ ] ユーザー権限管理
 - [ ] ファイル共有機能

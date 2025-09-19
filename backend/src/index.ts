@@ -6,6 +6,7 @@ import { initializeDatabase } from './config/database';
 import authRoutes from './routes/auth';
 import fileRoutes from './routes/files';
 import tagRoutes from './routes/tags';
+import usersRoutes from './routes/users';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/tags', tagRoutes);
+app.use('/api/users', usersRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

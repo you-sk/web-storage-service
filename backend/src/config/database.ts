@@ -47,6 +47,8 @@ export const initializeDatabase = (): Promise<void> => {
           size INTEGER,
           path TEXT NOT NULL,
           metadata TEXT,
+          is_public INTEGER DEFAULT 0,
+          public_id TEXT UNIQUE,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users (id)
@@ -87,8 +89,20 @@ export const initializeDatabase = (): Promise<void> => {
           reject(err);
           return;
         }
-        console.log('Database tables created successfully');
-        resolve();
+        // Add is_public and public_id columns to existing files table if they don't exist
+        db.run(`ALTER TABLE files ADD COLUMN is_public INTEGER DEFAULT 0`, (err) => {
+          if (err && !err.message.includes('duplicate column name')) {
+            console.error('Error adding is_public column:', err);
+          }
+        });
+
+        db.run(`ALTER TABLE files ADD COLUMN public_id TEXT UNIQUE`, (err) => {
+          if (err && !err.message.includes('duplicate column name')) {
+            console.error('Error adding public_id column:', err);
+          }
+          console.log('Database tables created successfully');
+          resolve();
+        });
       });
     });
   });

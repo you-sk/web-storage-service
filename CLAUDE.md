@@ -25,9 +25,9 @@
 - ユーザープロフィール編集機能
 - パスワード変更機能
 - ファイルの公開/非公開設定機能（共有リンク生成）
+- フォルダ機能（階層構造でのファイル管理）
 
 #### 🚧 未実装機能
-- フォルダ機能
 - ファイル共有（リンク生成）
 - ユーザー権限管理
 - バージョン管理
@@ -88,6 +88,7 @@ web-storage-service/
    - metadata (JSON)
    - is_public (INTEGER DEFAULT 0)
    - public_id (TEXT UNIQUE)
+   - folder_id (FOREIGN KEY)
    - created_at
    - updated_at
 
@@ -99,6 +100,14 @@ web-storage-service/
 4. **file_tags** (基本構造のみ実装)
    - file_id (FOREIGN KEY)
    - tag_id (FOREIGN KEY)
+
+5. **folders**
+   - id (PRIMARY KEY)
+   - user_id (FOREIGN KEY)
+   - name
+   - parent_id (FOREIGN KEY - self reference)
+   - created_at
+   - updated_at
 
 ## 開発を続ける際の注意点
 
@@ -246,9 +255,9 @@ VITE_API_URL=http://localhost:3001
 - [x] ユーザープロフィール編集 ✅ 実装済み
 - [x] パスワード変更機能 ✅ 実装済み
 - [x] ファイルの公開/非公開設定 ✅ 実装済み
+- [x] フォルダ機能 ✅ 実装済み
 
 ### 中期的な機能追加
-- [ ] フォルダ機能
 - [ ] コメント機能
 - [ ] バージョン管理
 - [ ] ゴミ箱機能
@@ -263,16 +272,18 @@ VITE_API_URL=http://localhost:3001
 
 ## 最後に開発したセッションの情報
 
-- **日時**: 2025-09-20
+- **日時**: 2025-09-21
 - **実装内容**:
-  - ファイルの公開/非公開設定機能
-  - 公開リンク生成機能（public_id による一意なリンク）
-  - バックエンドAPIエンドポイントの追加（/api/files/:id/visibility, /api/public/files/:publicId）
-  - 公開ファイルへの直接アクセス（認証不要）
-  - フロントエンドのShareボタンと公開設定モーダル
-  - 公開リンクのコピー機能
-- **ブランチ**: feature/file-visibility
-- **次回予定**: フォルダ機能の実装を推奨
+  - フォルダ機能の実装（階層構造でのファイル管理）
+  - foldersテーブルの作成とfilesテーブルへのfolder_idカラム追加
+  - フォルダAPI（/api/folders）の実装（CRUD操作、移動機能）
+  - ファイルのフォルダ間移動機能
+  - フォルダビューコンポーネント（FolderView.tsx）の作成
+  - パンくずナビゲーション実装
+  - フォルダの作成・リネーム・移動・削除UI
+  - ナビゲーションメニューにFoldersリンク追加
+- **ブランチ**: feature/folder-functionality
+- **次回予定**: コメント機能またはゴミ箱機能の実装を推奨
 
 ---
 

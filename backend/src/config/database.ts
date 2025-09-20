@@ -49,9 +49,11 @@ export const initializeDatabase = (): Promise<void> => {
           metadata TEXT,
           is_public INTEGER DEFAULT 0,
           public_id TEXT UNIQUE,
+          folder_id INTEGER,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users (id)
+          FOREIGN KEY (user_id) REFERENCES users (id),
+          FOREIGN KEY (folder_id) REFERENCES folders (id) ON DELETE SET NULL
         )
       `, (err) => {
         if (err) {
@@ -89,6 +91,34 @@ export const initializeDatabase = (): Promise<void> => {
           reject(err);
           return;
         }
+      });
+
+      // Create folders table
+      db.run(`
+        CREATE TABLE IF NOT EXISTS folders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          parent_id INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users (id),
+          FOREIGN KEY (parent_id) REFERENCES folders (id) ON DELETE CASCADE
+        )
+      `, (err) => {
+        if (err) {
+          console.error('Error creating folders table:', err);
+          reject(err);
+          return;
+        }
+
+        // Add folder_id to files table if it doesn't exist
+        db.run(`ALTER TABLE files ADD COLUMN folder_id INTEGER REFERENCES folders(id) ON DELETE SET NULL`, (err) => {
+          if (err && !err.message.includes('duplicate column name')) {
+            console.error('Error adding folder_id column:', err);
+          }
+        });
+
         // Add is_public and public_id columns to existing files table if they don't exist
         db.run(`ALTER TABLE files ADD COLUMN is_public INTEGER DEFAULT 0`, (err) => {
           if (err && !err.message.includes('duplicate column name')) {

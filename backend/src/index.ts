@@ -8,6 +8,7 @@ import fileRoutes from './routes/files';
 import tagRoutes from './routes/tags';
 import usersRoutes from './routes/users';
 import publicRoutes from './routes/public';
+import folderRoutes from './routes/folders';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -26,6 +27,7 @@ app.use('/api/files', fileRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/folders', folderRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

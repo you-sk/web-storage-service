@@ -36,10 +36,22 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
     }
 
     const metadata = req.body.metadata ? JSON.stringify(req.body.metadata) : null;
+    const folderId = req.body.folderId || null;
+
+    // Verify folder belongs to user if provided
+    if (folderId) {
+      const folder = await runSingle(
+        `SELECT id FROM folders WHERE id = ? AND user_id = ?`,
+        [folderId, req.userId]
+      );
+      if (!folder) {
+        return res.status(404).json({ error: 'Folder not found' });
+      }
+    }
 
     const fileId = await runInsert(
-      `INSERT INTO files (user_id, filename, original_name, mimetype, size, path, metadata, is_public, public_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO files (user_id, filename, original_name, mimetype, size, path, metadata, is_public, public_id, folder_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.userId,
         req.file.filename,
@@ -49,7 +61,8 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
         req.file.path,
         metadata,
         0,
-        null
+        null,
+        folderId
       ]
     );
 
@@ -74,6 +87,19 @@ router.post('/upload-multiple', authenticateToken, upload.array('files', 10), as
       return res.status(400).json({ error: 'No files uploaded' });
     }
 
+    const folderId = req.body.folderId || null;
+
+    // Verify folder belongs to user if provided
+    if (folderId) {
+      const folder = await runSingle(
+        `SELECT id FROM folders WHERE id = ? AND user_id = ?`,
+        [folderId, req.userId]
+      );
+      if (!folder) {
+        return res.status(404).json({ error: 'Folder not found' });
+      }
+    }
+
     const uploadedFiles = [];
     const errors = [];
 
@@ -82,8 +108,8 @@ router.post('/upload-multiple', authenticateToken, upload.array('files', 10), as
         const metadata = req.body.metadata ? JSON.stringify(req.body.metadata) : null;
 
         const fileId = await runInsert(
-          `INSERT INTO files (user_id, filename, original_name, mimetype, size, path, metadata, is_public, public_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO files (user_id, filename, original_name, mimetype, size, path, metadata, is_public, public_id, folder_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             req.userId,
             file.filename,
@@ -93,7 +119,8 @@ router.post('/upload-multiple', authenticateToken, upload.array('files', 10), as
             file.path,
             metadata,
             0,
-            null
+            null,
+            folderId
           ]
         );
 
@@ -140,11 +167,22 @@ router.post('/upload-multiple', authenticateToken, upload.array('files', 10), as
 
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
-    const files = await runQuery(
-      `SELECT id, filename, original_name, mimetype, size, metadata, is_public, public_id, created_at
-       FROM files WHERE user_id = ? ORDER BY created_at DESC`,
-      [req.userId]
-    );
+    const { folderId } = req.query;
+
+    let sql = `SELECT id, filename, original_name, mimetype, size, metadata, is_public, public_id, folder_id, created_at
+               FROM files WHERE user_id = ?`;
+    const params: any[] = [req.userId];
+
+    if (folderId === 'root') {
+      sql += ` AND folder_id IS NULL`;
+    } else if (folderId) {
+      sql += ` AND folder_id = ?`;
+      params.push(folderId);
+    }
+
+    sql += ` ORDER BY created_at DESC`;
+
+    const files = await runQuery(sql, params);
 
     return res.json({ files });
   } catch (error) {
@@ -155,10 +193,10 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
 
 router.get('/search', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
-    const { query = '', tagIds = '', type = '' } = req.query;
+    const { query = '', tagIds = '', type = '', folderId = '' } = req.query;
 
     let sql = `
-      SELECT DISTINCT f.id, f.filename, f.original_name, f.mimetype, f.size, f.metadata, f.is_public, f.public_id, f.created_at
+      SELECT DISTINCT f.id, f.filename, f.original_name, f.mimetype, f.size, f.metadata, f.is_public, f.public_id, f.folder_id, f.created_at
       FROM files f
       LEFT JOIN file_tags ft ON f.id = ft.file_id
       WHERE f.user_id = ?
@@ -182,6 +220,15 @@ router.get('/search', authenticateToken, async (req: AuthRequest, res: Response)
       if (tagIdArray.length > 0) {
         sql += ` AND ft.tag_id IN (${tagIdArray.map(() => '?').join(',')})`;
         params.push(...tagIdArray);
+      }
+    }
+
+    if (folderId && typeof folderId === 'string') {
+      if (folderId === 'root') {
+        sql += ` AND f.folder_id IS NULL`;
+      } else {
+        sql += ` AND f.folder_id = ?`;
+        params.push(folderId);
       }
     }
 
@@ -391,6 +438,47 @@ router.put('/:id/visibility', authenticateToken, async (req: AuthRequest, res: R
     });
   } catch (error) {
     console.error('Update visibility error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.put('/:id/move', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const { folderId } = req.body;
+    const fileId = req.params.id;
+
+    const file = await runSingle(
+      `SELECT * FROM files WHERE id = ? AND user_id = ?`,
+      [fileId, req.userId]
+    );
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Verify folder belongs to user if provided
+    if (folderId) {
+      const folder = await runSingle(
+        `SELECT id FROM folders WHERE id = ? AND user_id = ?`,
+        [folderId, req.userId]
+      );
+      if (!folder) {
+        return res.status(404).json({ error: 'Folder not found' });
+      }
+    }
+
+    await runQuery(
+      `UPDATE files
+       SET folder_id = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND user_id = ?`,
+      [folderId || null, fileId, req.userId]
+    );
+
+    return res.json({
+      message: 'File moved successfully'
+    });
+  } catch (error) {
+    console.error('Move file error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

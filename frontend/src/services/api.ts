@@ -42,16 +42,19 @@ export const authService = {
 }
 
 export const fileService = {
-  upload: async (file: File, metadata?: any) => {
+  upload: async (file: File, metadata?: any, folderId?: string) => {
     const formData = new FormData()
     formData.append('file', file)
     if (metadata) {
       formData.append('metadata', JSON.stringify(metadata))
     }
+    if (folderId) {
+      formData.append('folderId', folderId)
+    }
     const response = await api.post('/api/files/upload', formData)
     return response.data
   },
-  uploadMultiple: async (files: File[], metadata?: any) => {
+  uploadMultiple: async (files: File[], metadata?: any, folderId?: string) => {
     const formData = new FormData()
     files.forEach(file => {
       formData.append('files', file)
@@ -59,18 +62,23 @@ export const fileService = {
     if (metadata) {
       formData.append('metadata', JSON.stringify(metadata))
     }
+    if (folderId) {
+      formData.append('folderId', folderId)
+    }
     const response = await api.post('/api/files/upload-multiple', formData)
     return response.data
   },
-  getFiles: async () => {
-    const response = await api.get('/api/files')
+  getFiles: async (folderId?: string) => {
+    const params = folderId ? `?folderId=${folderId}` : ''
+    const response = await api.get(`/api/files${params}`)
     return response.data
   },
-  searchFiles: async (query: string, tagIds: string[], type: string) => {
+  searchFiles: async (query: string, tagIds: string[], type: string, folderId?: string) => {
     const params = new URLSearchParams()
     if (query) params.append('query', query)
     if (tagIds.length > 0) params.append('tagIds', tagIds.join(','))
     if (type) params.append('type', type)
+    if (folderId) params.append('folderId', folderId)
 
     const response = await api.get(`/api/files/search?${params.toString()}`)
     return response.data
@@ -102,6 +110,37 @@ export const fileService = {
   },
   updateVisibility: async (id: string, isPublic: boolean) => {
     const response = await api.put(`/api/files/${id}/visibility`, { isPublic })
+    return response.data
+  },
+  moveFile: async (id: string, folderId: string | null) => {
+    const response = await api.put(`/api/files/${id}/move`, { folderId })
+    return response.data
+  },
+}
+
+export const folderService = {
+  getFolders: async () => {
+    const response = await api.get('/api/folders')
+    return response.data
+  },
+  getFolderContents: async (folderId: string) => {
+    const response = await api.get(`/api/folders/${folderId}`)
+    return response.data
+  },
+  createFolder: async (name: string, parentId?: string | null) => {
+    const response = await api.post('/api/folders', { name, parentId })
+    return response.data
+  },
+  updateFolder: async (id: string, name: string) => {
+    const response = await api.put(`/api/folders/${id}`, { name })
+    return response.data
+  },
+  moveFolder: async (id: string, parentId: string | null) => {
+    const response = await api.put(`/api/folders/${id}/move`, { parentId })
+    return response.data
+  },
+  deleteFolder: async (id: string) => {
+    const response = await api.delete(`/api/folders/${id}`)
     return response.data
   },
 }

@@ -3,6 +3,7 @@ import { useAuthStore } from './store/authStore'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
+import FolderView from './pages/FolderView'
 import Layout from './components/Layout'
 
 function App() {
@@ -41,6 +42,30 @@ function App() {
           isAuthenticated ? (
             <Layout>
               <Profile />
+            </Layout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route
+        path="/dashboard/folders"
+        element={
+          isAuthenticated ? (
+            <Layout>
+              <FolderView />
+            </Layout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route
+        path="/dashboard/folders/:folderId"
+        element={
+          isAuthenticated ? (
+            <Layout>
+              <FolderView />
             </Layout>
           ) : (
             <Navigate to="/login" />

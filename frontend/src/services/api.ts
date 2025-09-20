@@ -100,6 +100,10 @@ export const fileService = {
     const response = await api.put(`/api/files/${id}/metadata`, { metadata })
     return response.data
   },
+  updateVisibility: async (id: string, isPublic: boolean) => {
+    const response = await api.put(`/api/files/${id}/visibility`, { isPublic })
+    return response.data
+  },
 }
 
 export const tagService = {

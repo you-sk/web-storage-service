@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [selectedTypeFilter, setSelectedTypeFilter] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [previewFile, setPreviewFile] = useState<any | null>(null)
+  const [publicLinkModal, setPublicLinkModal] = useState<{ fileId: string; publicId: string | null; isPublic: boolean } | null>(null)
 
   const { data: files, isLoading } = useQuery({
     queryKey: ['files', searchQuery, selectedTagFilter, selectedTypeFilter],
@@ -78,6 +79,22 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['files'] })
       setEditingMetadata(null)
       setMetadataText('')
+    },
+  })
+
+  const visibilityMutation = useMutation({
+    mutationFn: async ({ id, isPublic }: { id: string; isPublic: boolean }) => {
+      return fileService.updateVisibility(id, isPublic)
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      if (publicLinkModal) {
+        setPublicLinkModal({
+          ...publicLinkModal,
+          isPublic: data.isPublic,
+          publicId: data.publicId
+        })
+      }
     },
   })
 
@@ -364,6 +381,11 @@ export default function Dashboard() {
                       <p className="text-xs text-gray-500 mt-1">
                         Uploaded: {new Date(file.created_at).toLocaleString()}
                       </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={`inline-flex items-center px-2 py-1 text-xs rounded ${file.is_public ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {file.is_public ? '🌐 Public' : '🔒 Private'}
+                        </span>
+                      </div>
                       {file.metadata && (
                         <pre className="text-xs text-gray-600 mt-2 bg-gray-50 p-2 rounded">
                           {JSON.stringify(JSON.parse(file.metadata), null, 2)}
@@ -388,6 +410,12 @@ export default function Dashboard() {
                         className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
                       >
                         Metadata
+                      </button>
+                      <button
+                        onClick={() => setPublicLinkModal({ fileId: file.id, publicId: file.public_id, isPublic: file.is_public })}
+                        className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600"
+                      >
+                        Share
                       </button>
                       <button
                         onClick={() => handleDownload(file.id, file.original_name)}
@@ -534,6 +562,72 @@ export default function Dashboard() {
           isOpen={!!previewFile}
           onClose={() => setPreviewFile(null)}
         />
+      )}
+
+      {publicLinkModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">File Sharing Settings</h3>
+
+            <div className="mb-4">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={publicLinkModal.isPublic}
+                  onChange={(e) => {
+                    visibilityMutation.mutate({
+                      id: publicLinkModal.fileId,
+                      isPublic: e.target.checked
+                    })
+                  }}
+                  className="mr-2"
+                />
+                <span className="text-sm font-medium">Make file publicly accessible</span>
+              </label>
+            </div>
+
+            {publicLinkModal.isPublic && publicLinkModal.publicId && (
+              <div className="mb-4 p-3 bg-gray-50 rounded">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Public Link
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${window.location.origin}/api/public/files/${publicLinkModal.publicId}`}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded bg-white"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/api/public/files/${publicLinkModal.publicId}`)
+                      alert('Link copied to clipboard!')
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Anyone with this link can view and download the file
+                </p>
+              </div>
+            )}
+
+            {visibilityMutation.isPending && (
+              <p className="text-sm text-gray-600 mb-4">Updating visibility...</p>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                onClick={() => setPublicLinkModal(null)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showTagManager && (

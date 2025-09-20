@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
 import { runQuery, runInsert, runSingle, runDelete } from '../config/database';
 
@@ -37,8 +38,8 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
     const metadata = req.body.metadata ? JSON.stringify(req.body.metadata) : null;
 
     const fileId = await runInsert(
-      `INSERT INTO files (user_id, filename, original_name, mimetype, size, path, metadata)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO files (user_id, filename, original_name, mimetype, size, path, metadata, is_public, public_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.userId,
         req.file.filename,
@@ -46,7 +47,9 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
         req.file.mimetype,
         req.file.size,
         req.file.path,
-        metadata
+        metadata,
+        0,
+        null
       ]
     );
 
@@ -79,8 +82,8 @@ router.post('/upload-multiple', authenticateToken, upload.array('files', 10), as
         const metadata = req.body.metadata ? JSON.stringify(req.body.metadata) : null;
 
         const fileId = await runInsert(
-          `INSERT INTO files (user_id, filename, original_name, mimetype, size, path, metadata)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO files (user_id, filename, original_name, mimetype, size, path, metadata, is_public, public_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             req.userId,
             file.filename,
@@ -88,7 +91,9 @@ router.post('/upload-multiple', authenticateToken, upload.array('files', 10), as
             file.mimetype,
             file.size,
             file.path,
-            metadata
+            metadata,
+            0,
+            null
           ]
         );
 
@@ -136,7 +141,7 @@ router.post('/upload-multiple', authenticateToken, upload.array('files', 10), as
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
     const files = await runQuery(
-      `SELECT id, filename, original_name, mimetype, size, metadata, created_at
+      `SELECT id, filename, original_name, mimetype, size, metadata, is_public, public_id, created_at
        FROM files WHERE user_id = ? ORDER BY created_at DESC`,
       [req.userId]
     );
@@ -153,7 +158,7 @@ router.get('/search', authenticateToken, async (req: AuthRequest, res: Response)
     const { query = '', tagIds = '', type = '' } = req.query;
 
     let sql = `
-      SELECT DISTINCT f.id, f.filename, f.original_name, f.mimetype, f.size, f.metadata, f.created_at
+      SELECT DISTINCT f.id, f.filename, f.original_name, f.mimetype, f.size, f.metadata, f.is_public, f.public_id, f.created_at
       FROM files f
       LEFT JOIN file_tags ft ON f.id = ft.file_id
       WHERE f.user_id = ?
@@ -344,6 +349,48 @@ router.put('/:id/metadata', authenticateToken, async (req: AuthRequest, res: Res
     });
   } catch (error) {
     console.error('Update metadata error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.put('/:id/visibility', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const { isPublic } = req.body;
+
+    if (typeof isPublic !== 'boolean') {
+      return res.status(400).json({ error: 'isPublic must be a boolean' });
+    }
+
+    const file = await runSingle(
+      `SELECT * FROM files WHERE id = ? AND user_id = ?`,
+      [req.params.id, req.userId]
+    );
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    let publicId = file.public_id as string | null;
+
+    if (isPublic && !publicId) {
+      publicId = crypto.randomBytes(16).toString('hex');
+    } else if (!isPublic) {
+      publicId = null;
+    }
+
+    await runQuery(
+      `UPDATE files SET is_public = ?, public_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?`,
+      [isPublic ? 1 : 0, publicId, req.params.id, req.userId]
+    );
+
+    return res.json({
+      message: 'File visibility updated successfully',
+      isPublic,
+      publicId,
+      publicUrl: publicId ? `/api/public/files/${publicId}` : null
+    });
+  } catch (error) {
+    console.error('Update visibility error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

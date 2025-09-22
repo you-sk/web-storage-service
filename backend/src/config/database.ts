@@ -130,6 +130,28 @@ export const initializeDatabase = (): Promise<void> => {
           if (err && !err.message.includes('duplicate column name')) {
             console.error('Error adding public_id column:', err);
           }
+        });
+
+        // Create comments table
+        db.run(`
+          CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            parent_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (file_id) REFERENCES files (id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (parent_id) REFERENCES comments (id) ON DELETE CASCADE
+          )
+        `, (err) => {
+          if (err) {
+            console.error('Error creating comments table:', err);
+            reject(err);
+            return;
+          }
           console.log('Database tables created successfully');
           resolve();
         });

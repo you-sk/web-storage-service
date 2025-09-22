@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, FileText, AlertCircle } from 'lucide-react';
+import Comments from './Comments';
 
 interface FilePreviewProps {
   file: {
@@ -156,6 +157,11 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, isOpen, onClose }) => {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Comments Section */}
+        <div className="p-4 border-t max-h-[400px] overflow-y-auto">
+          <Comments fileId={file.id} />
         </div>
 
         {/* Footer */}

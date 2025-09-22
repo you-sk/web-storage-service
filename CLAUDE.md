@@ -26,11 +26,12 @@
 - パスワード変更機能
 - ファイルの公開/非公開設定機能（共有リンク生成）
 - フォルダ機能（階層構造でのファイル管理）
+- コメント機能（ファイルに対するコメント、返信、編集、削除）
 
 #### 🚧 未実装機能
-- ファイル共有（リンク生成）
 - ユーザー権限管理
 - バージョン管理
+- ゴミ箱機能
 
 ## 開発環境
 
@@ -106,6 +107,15 @@ web-storage-service/
    - user_id (FOREIGN KEY)
    - name
    - parent_id (FOREIGN KEY - self reference)
+   - created_at
+   - updated_at
+
+6. **comments**
+   - id (PRIMARY KEY)
+   - file_id (FOREIGN KEY)
+   - user_id (FOREIGN KEY)
+   - content (TEXT)
+   - parent_id (FOREIGN KEY - self reference for replies)
    - created_at
    - updated_at
 
@@ -256,9 +266,9 @@ VITE_API_URL=http://localhost:3001
 - [x] パスワード変更機能 ✅ 実装済み
 - [x] ファイルの公開/非公開設定 ✅ 実装済み
 - [x] フォルダ機能 ✅ 実装済み
+- [x] コメント機能 ✅ 実装済み
 
 ### 中期的な機能追加
-- [ ] コメント機能
 - [ ] バージョン管理
 - [ ] ゴミ箱機能
 
@@ -272,18 +282,17 @@ VITE_API_URL=http://localhost:3001
 
 ## 最後に開発したセッションの情報
 
-- **日時**: 2025-09-21
+- **日時**: 2025-09-22
 - **実装内容**:
-  - フォルダ機能の実装（階層構造でのファイル管理）
-  - foldersテーブルの作成とfilesテーブルへのfolder_idカラム追加
-  - フォルダAPI（/api/folders）の実装（CRUD操作、移動機能）
-  - ファイルのフォルダ間移動機能
-  - フォルダビューコンポーネント（FolderView.tsx）の作成
-  - パンくずナビゲーション実装
-  - フォルダの作成・リネーム・移動・削除UI
-  - ナビゲーションメニューにFoldersリンク追加
-- **ブランチ**: feature/folder-functionality
-- **次回予定**: コメント機能またはゴミ箱機能の実装を推奨
+  - コメント機能の実装（ファイルに対するコメントと返信）
+  - commentsテーブルの作成（階層構造でのコメント管理）
+  - コメントAPI（/api/files/:fileId/comments, /api/comments/:commentId）の実装
+  - コメントのCRUD操作（作成、編集、削除、返信）
+  - Commentsコンポーネント（Comments.tsx）の作成
+  - FilePreviewコンポーネントへのコメントセクション統合
+  - date-fnsライブラリの追加（日付フォーマット用）
+- **ブランチ**: feature/comment-functionality
+- **次回予定**: バージョン管理またはゴミ箱機能の実装を推奨
 
 ---
 

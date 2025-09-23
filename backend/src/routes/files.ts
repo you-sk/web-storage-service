@@ -170,7 +170,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
     const { folderId } = req.query;
 
     let sql = `SELECT id, filename, original_name, mimetype, size, metadata, is_public, public_id, folder_id, created_at
-               FROM files WHERE user_id = ?`;
+               FROM files WHERE user_id = ? AND deleted_at IS NULL`;
     const params: any[] = [req.userId];
 
     if (folderId === 'root') {
@@ -199,7 +199,7 @@ router.get('/search', authenticateToken, async (req: AuthRequest, res: Response)
       SELECT DISTINCT f.id, f.filename, f.original_name, f.mimetype, f.size, f.metadata, f.is_public, f.public_id, f.folder_id, f.created_at
       FROM files f
       LEFT JOIN file_tags ft ON f.id = ft.file_id
-      WHERE f.user_id = ?
+      WHERE f.user_id = ? AND f.deleted_at IS NULL
     `;
 
     const params: any[] = [req.userId];
@@ -483,10 +483,11 @@ router.put('/:id/move', authenticateToken, async (req: AuthRequest, res: Respons
   }
 });
 
+// Soft delete - Move to trash
 router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
     const file = await runSingle(
-      `SELECT * FROM files WHERE id = ? AND user_id = ?`,
+      `SELECT * FROM files WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [req.params.id, req.userId]
     );
 
@@ -494,8 +495,75 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response)
       return res.status(404).json({ error: 'File not found' });
     }
 
+    // Soft delete - set deleted_at timestamp
+    await runDelete(
+      `UPDATE files SET deleted_at = datetime('now') WHERE id = ? AND user_id = ?`,
+      [req.params.id, req.userId]
+    );
+
+    return res.json({ message: 'File moved to trash successfully' });
+  } catch (error) {
+    console.error('Delete error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get trash files
+router.get('/trash/list', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const sql = `SELECT id, filename, original_name, mimetype, size, metadata, folder_id, deleted_at, created_at
+                 FROM files WHERE user_id = ? AND deleted_at IS NOT NULL
+                 ORDER BY deleted_at DESC`;
+
+    const files = await runQuery(sql, [req.userId]);
+
+    return res.json({ files });
+  } catch (error) {
+    console.error('Get trash files error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Restore file from trash
+router.post('/:id/restore', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const file = await runSingle(
+      `SELECT * FROM files WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL`,
+      [req.params.id, req.userId]
+    );
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found in trash' });
+    }
+
+    // Restore file - clear deleted_at
+    await runDelete(
+      `UPDATE files SET deleted_at = NULL WHERE id = ? AND user_id = ?`,
+      [req.params.id, req.userId]
+    );
+
+    return res.json({ message: 'File restored successfully' });
+  } catch (error) {
+    console.error('Restore error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Permanently delete file from trash
+router.delete('/:id/permanent', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const file = await runSingle(
+      `SELECT * FROM files WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL`,
+      [req.params.id, req.userId]
+    );
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found in trash' });
+    }
+
     const filePath = file.path as string;
 
+    // Delete physical file
     if (fs.existsSync(filePath)) {
       try {
         fs.unlinkSync(filePath);
@@ -504,18 +572,52 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response)
       }
     }
 
-    const deletedCount = await runDelete(
+    // Permanently delete from database
+    await runDelete(
       `DELETE FROM files WHERE id = ? AND user_id = ?`,
       [req.params.id, req.userId]
     );
 
-    if (deletedCount === 0) {
-      return res.status(404).json({ error: 'File not found' });
+    return res.json({ message: 'File permanently deleted' });
+  } catch (error) {
+    console.error('Permanent delete error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Empty trash - permanently delete all trashed files
+router.delete('/trash/empty', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    // Get all trashed files for the user
+    const trashedFiles = await runQuery(
+      `SELECT * FROM files WHERE user_id = ? AND deleted_at IS NOT NULL`,
+      [req.userId]
+    );
+
+    // Delete physical files
+    for (const file of trashedFiles as any[]) {
+      const filePath = file.path as string;
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          console.error('Error deleting file from disk:', err);
+        }
+      }
     }
 
-    return res.json({ message: 'File deleted successfully' });
+    // Permanently delete from database
+    const deletedCount = await runDelete(
+      `DELETE FROM files WHERE user_id = ? AND deleted_at IS NOT NULL`,
+      [req.userId]
+    );
+
+    return res.json({
+      message: 'Trash emptied successfully',
+      deletedCount
+    });
   } catch (error) {
-    console.error('Delete error:', error);
+    console.error('Empty trash error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

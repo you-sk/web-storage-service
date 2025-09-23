@@ -558,8 +558,9 @@ export default function FolderView() {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Confirm Delete</h3>
             <p className="mb-6">
-              Are you sure you want to delete {deleteConfirm.type === 'folder' ? 'the folder' : 'the file'} "{deleteConfirm.name}"?
-              {deleteConfirm.type === 'folder' && ' This will also delete all files and subfolders inside it.'}
+              {deleteConfirm.type === 'folder' ?
+                `「${deleteConfirm.name}」フォルダを削除しますか？フォルダ内のすべてのファイルとサブフォルダも削除されます。` :
+                `「${deleteConfirm.name}」をゴミ箱に移動しますか？ゴミ箱から復元または完全削除できます。`}
             </p>
             <div className="flex justify-end gap-3">
               <button

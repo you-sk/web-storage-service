@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import FolderView from './pages/FolderView'
+import Trash from './components/Trash'
 import Layout from './components/Layout'
 
 function App() {
@@ -66,6 +67,18 @@ function App() {
           isAuthenticated ? (
             <Layout>
               <FolderView />
+            </Layout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route
+        path="/trash"
+        element={
+          isAuthenticated ? (
+            <Layout>
+              <Trash />
             </Layout>
           ) : (
             <Navigate to="/login" />

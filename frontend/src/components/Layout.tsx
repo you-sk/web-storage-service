@@ -35,6 +35,12 @@ export default function Layout({ children }: LayoutProps) {
                 Folders
               </button>
               <button
+                onClick={() => navigate('/trash')}
+                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Trash
+              </button>
+              <button
                 onClick={() => navigate('/profile')}
                 className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
               >

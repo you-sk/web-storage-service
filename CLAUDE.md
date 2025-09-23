@@ -27,11 +27,11 @@
 - ファイルの公開/非公開設定機能（共有リンク生成）
 - フォルダ機能（階層構造でのファイル管理）
 - コメント機能（ファイルに対するコメント、返信、編集、削除）
+- ゴミ箱機能（論理削除、復元、完全削除、一括削除）
 
 #### 🚧 未実装機能
 - ユーザー権限管理
 - バージョン管理
-- ゴミ箱機能
 
 ## 開発環境
 
@@ -90,6 +90,7 @@ web-storage-service/
    - is_public (INTEGER DEFAULT 0)
    - public_id (TEXT UNIQUE)
    - folder_id (FOREIGN KEY)
+   - deleted_at (DATETIME DEFAULT NULL - ゴミ箱機能用)
    - created_at
    - updated_at
 
@@ -267,10 +268,10 @@ VITE_API_URL=http://localhost:3001
 - [x] ファイルの公開/非公開設定 ✅ 実装済み
 - [x] フォルダ機能 ✅ 実装済み
 - [x] コメント機能 ✅ 実装済み
+- [x] ゴミ箱機能 ✅ 実装済み
 
 ### 中期的な機能追加
 - [ ] バージョン管理
-- [ ] ゴミ箱機能
 
 ### 長期的な拡張
 - [ ] チーム/組織機能
@@ -282,17 +283,20 @@ VITE_API_URL=http://localhost:3001
 
 ## 最後に開発したセッションの情報
 
-- **日時**: 2025-09-22
+- **日時**: 2025-09-23
 - **実装内容**:
-  - コメント機能の実装（ファイルに対するコメントと返信）
-  - commentsテーブルの作成（階層構造でのコメント管理）
-  - コメントAPI（/api/files/:fileId/comments, /api/comments/:commentId）の実装
-  - コメントのCRUD操作（作成、編集、削除、返信）
-  - Commentsコンポーネント（Comments.tsx）の作成
-  - FilePreviewコンポーネントへのコメントセクション統合
-  - date-fnsライブラリの追加（日付フォーマット用）
-- **ブランチ**: feature/comment-functionality
-- **次回予定**: バージョン管理またはゴミ箱機能の実装を推奨
+  - ゴミ箱機能の実装（論理削除でのファイル管理）
+  - filesテーブルへのdeleted_atカラム追加
+  - ソフトデリート（ゴミ箱への移動）の実装
+  - ゴミ箱API（/api/files/trash/list, /api/files/:id/restore, /api/files/:id/permanent, /api/files/trash/empty）の実装
+  - ゴミ箱からの復元機能
+  - ゴミ箱からの完全削除機能
+  - ゴミ箱を空にする一括削除機能
+  - Trashコンポーネント（Trash.tsx）の作成
+  - ナビゲーションへのゴミ箱リンク追加
+  - 削除確認ダイアログのメッセージ更新
+- **ブランチ**: feature/trash-functionality
+- **次回予定**: バージョン管理機能の実装を推奨
 
 ---
 

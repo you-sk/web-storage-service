@@ -50,6 +50,7 @@ export const initializeDatabase = (): Promise<void> => {
           is_public INTEGER DEFAULT 0,
           public_id TEXT UNIQUE,
           folder_id INTEGER,
+          deleted_at DATETIME DEFAULT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users (id),
@@ -129,6 +130,13 @@ export const initializeDatabase = (): Promise<void> => {
         db.run(`ALTER TABLE files ADD COLUMN public_id TEXT UNIQUE`, (err) => {
           if (err && !err.message.includes('duplicate column name')) {
             console.error('Error adding public_id column:', err);
+          }
+        });
+
+        // Add deleted_at column for soft delete functionality
+        db.run(`ALTER TABLE files ADD COLUMN deleted_at DATETIME DEFAULT NULL`, (err) => {
+          if (err && !err.message.includes('duplicate column name')) {
+            console.error('Error adding deleted_at column:', err);
           }
         });
 

@@ -160,8 +160,35 @@ export const initializeDatabase = (): Promise<void> => {
             reject(err);
             return;
           }
-          console.log('Database tables created successfully');
-          resolve();
+
+          // Create file_versions table for version control
+          db.run(`
+            CREATE TABLE IF NOT EXISTS file_versions (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              file_id INTEGER NOT NULL,
+              version_number INTEGER NOT NULL,
+              filename TEXT NOT NULL,
+              original_name TEXT NOT NULL,
+              mimetype TEXT,
+              size INTEGER,
+              path TEXT NOT NULL,
+              metadata TEXT,
+              change_description TEXT,
+              created_by INTEGER NOT NULL,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (file_id) REFERENCES files (id) ON DELETE CASCADE,
+              FOREIGN KEY (created_by) REFERENCES users (id),
+              UNIQUE (file_id, version_number)
+            )
+          `, (err) => {
+            if (err) {
+              console.error('Error creating file_versions table:', err);
+              reject(err);
+              return;
+            }
+            console.log('Database tables created successfully');
+            resolve();
+          });
         });
       });
     });

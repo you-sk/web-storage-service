@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fileService, tagService } from '../services/api'
 import FilePreview from '../components/FilePreview'
+import FileVersions from '../components/FileVersions'
 
 export default function Dashboard() {
   const queryClient = useQueryClient()
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const [isSearching, setIsSearching] = useState(false)
   const [previewFile, setPreviewFile] = useState<any | null>(null)
   const [publicLinkModal, setPublicLinkModal] = useState<{ fileId: string; publicId: string | null; isPublic: boolean } | null>(null)
+  const [versionsFile, setVersionsFile] = useState<number | null>(null)
 
   const { data: files, isLoading } = useQuery({
     queryKey: ['files', searchQuery, selectedTagFilter, selectedTypeFilter],
@@ -400,6 +402,12 @@ export default function Dashboard() {
                         Preview
                       </button>
                       <button
+                        onClick={() => setVersionsFile(file.id)}
+                        className="px-3 py-1 bg-cyan-500 text-white text-sm rounded hover:bg-cyan-600"
+                      >
+                        Versions
+                      </button>
+                      <button
                         onClick={() => handleEditTags(file.id)}
                         className="px-3 py-1 bg-purple-500 text-white text-sm rounded hover:bg-purple-600"
                       >
@@ -692,6 +700,14 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {versionsFile && (
+        <FileVersions
+          fileId={versionsFile}
+          onClose={() => setVersionsFile(null)}
+        />
+      )}
+
     </div>
   )
 }

@@ -28,10 +28,10 @@
 - フォルダ機能（階層構造でのファイル管理）
 - コメント機能（ファイルに対するコメント、返信、編集、削除）
 - ゴミ箱機能（論理削除、復元、完全削除、一括削除）
+- バージョン管理機能（ファイルの履歴管理、バージョン比較、復元）
 
 #### 🚧 未実装機能
 - ユーザー権限管理
-- バージョン管理
 
 ## 開発環境
 
@@ -120,6 +120,21 @@ web-storage-service/
    - created_at
    - updated_at
 
+7. **file_versions**
+   - id (PRIMARY KEY)
+   - file_id (FOREIGN KEY)
+   - version_number (INTEGER)
+   - filename
+   - original_name
+   - mimetype
+   - size
+   - path
+   - metadata (TEXT)
+   - change_description (TEXT)
+   - created_by (FOREIGN KEY)
+   - created_at
+   - UNIQUE (file_id, version_number)
+
 ## 開発を続ける際の注意点
 
 ### TypeScript設定
@@ -138,18 +153,11 @@ web-storage-service/
 
 ## 次の開発ステップ（推奨順）
 
-### 1. ファイルの公開/非公開設定
+### 1. ユーザー権限管理
 ```typescript
-// filesテーブルにis_publicカラムを追加
-// 公開URL生成機能
-// アクセス制御の実装
-```
-
-### 2. フォルダ機能
-```typescript
-// foldersテーブルの作成
-// フォルダ階層の管理
-// ファイルのフォルダ移動
+// ロールベースのアクセス制御
+// Admin/User/Guest権限
+// 共有ファイルの権限設定
 ```
 
 ## よく使うコマンド
@@ -269,9 +277,9 @@ VITE_API_URL=http://localhost:3001
 - [x] フォルダ機能 ✅ 実装済み
 - [x] コメント機能 ✅ 実装済み
 - [x] ゴミ箱機能 ✅ 実装済み
+- [x] バージョン管理 ✅ 実装済み
 
 ### 中期的な機能追加
-- [ ] バージョン管理
 
 ### 長期的な拡張
 - [ ] チーム/組織機能
@@ -283,20 +291,20 @@ VITE_API_URL=http://localhost:3001
 
 ## 最後に開発したセッションの情報
 
-- **日時**: 2025-09-23
+- **日時**: 2025-09-24
 - **実装内容**:
-  - ゴミ箱機能の実装（論理削除でのファイル管理）
-  - filesテーブルへのdeleted_atカラム追加
-  - ソフトデリート（ゴミ箱への移動）の実装
-  - ゴミ箱API（/api/files/trash/list, /api/files/:id/restore, /api/files/:id/permanent, /api/files/trash/empty）の実装
-  - ゴミ箱からの復元機能
-  - ゴミ箱からの完全削除機能
-  - ゴミ箱を空にする一括削除機能
-  - Trashコンポーネント（Trash.tsx）の作成
-  - ナビゲーションへのゴミ箱リンク追加
-  - 削除確認ダイアログのメッセージ更新
-- **ブランチ**: feature/trash-functionality
-- **次回予定**: バージョン管理機能の実装を推奨
+  - バージョン管理機能の実装
+  - file_versionsテーブルの作成
+  - バージョン履歴の保存と管理
+  - バージョンAPI（/api/files/:id/versions）の実装
+  - ファイルの新バージョンアップロード機能
+  - バージョン間の比較機能
+  - 特定バージョンへの復元機能
+  - バージョンのダウンロード・削除機能
+  - FileVersionsコンポーネント（FileVersions.tsx）の作成
+  - ダッシュボードにバージョン管理ボタン追加
+- **ブランチ**: feature/version-control
+- **次回予定**: ユーザー権限管理機能の実装を推奨
 
 ---
 

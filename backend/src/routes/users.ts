@@ -10,7 +10,7 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response
     const userId = req.userId;
 
     const user = await runSingle(`
-      SELECT id, username, email, created_at, updated_at
+      SELECT id, username, email, role, created_at, updated_at
       FROM users
       WHERE id = ?
     `, [userId]);

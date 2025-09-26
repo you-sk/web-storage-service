@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
+import { checkPermission } from '../middleware/permissions';
 import { runQuery, runInsert, runSingle, runDelete } from '../config/database';
 
 const router = Router();
@@ -14,7 +15,7 @@ router.get('/', authenticateToken, async (_req: AuthRequest, res: Response): Pro
   }
 });
 
-router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
+router.post('/', authenticateToken, checkPermission('manage_tags'), async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
     const { name } = req.body;
 
@@ -39,7 +40,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
   }
 });
 
-router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response): Promise<Response> => {
+router.delete('/:id', authenticateToken, checkPermission('manage_tags'), async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
     await runDelete(`DELETE FROM file_tags WHERE tag_id = ?`, [req.params.id]);
     

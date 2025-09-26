@@ -11,6 +11,7 @@ import publicRoutes from './routes/public';
 import folderRoutes from './routes/folders';
 import commentRoutes from './routes/comments';
 import versionRoutes from './routes/versions';
+import permissionRoutes from './routes/permissions';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -32,6 +33,7 @@ app.use('/api/public', publicRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api', commentRoutes);
 app.use('/api', versionRoutes);
+app.use('/api', permissionRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

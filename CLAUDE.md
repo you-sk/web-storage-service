@@ -29,9 +29,10 @@
 - コメント機能（ファイルに対するコメント、返信、編集、削除）
 - ゴミ箱機能（論理削除、復元、完全削除、一括削除）
 - バージョン管理機能（ファイルの履歴管理、バージョン比較、復元）
+- ユーザー権限管理（ロールベースのアクセス制御、ファイル単位の権限設定）
 
 #### 🚧 未実装機能
-- ユーザー権限管理
+- なし（主要機能はすべて実装済み）
 
 ## 開発環境
 
@@ -75,6 +76,7 @@ web-storage-service/
    - username (UNIQUE)
    - email (UNIQUE)
    - password (hashed)
+   - role (TEXT DEFAULT 'user')
    - created_at
    - updated_at
 
@@ -135,6 +137,26 @@ web-storage-service/
    - created_at
    - UNIQUE (file_id, version_number)
 
+8. **permissions**
+   - id (PRIMARY KEY)
+   - name (TEXT UNIQUE)
+   - description (TEXT)
+   - created_at
+
+9. **role_permissions**
+   - role (TEXT)
+   - permission_id (FOREIGN KEY)
+   - PRIMARY KEY (role, permission_id)
+
+10. **file_permissions**
+    - id (PRIMARY KEY)
+    - file_id (FOREIGN KEY)
+    - user_id (FOREIGN KEY)
+    - permission (TEXT CHECK IN ('view', 'edit', 'delete', 'share'))
+    - granted_by (FOREIGN KEY)
+    - created_at
+    - UNIQUE (file_id, user_id, permission)
+
 ## 開発を続ける際の注意点
 
 ### TypeScript設定
@@ -151,14 +173,31 @@ web-storage-service/
 - 保存先: `/app/uploads/`（Docker内）
 - ファイル名は自動的にユニーク化される
 
-## 次の開発ステップ（推奨順）
+## ロールと権限について
 
-### 1. ユーザー権限管理
-```typescript
-// ロールベースのアクセス制御
-// Admin/User/Guest権限
-// 共有ファイルの権限設定
-```
+### ユーザーロール
+- **admin**: 全権限を持つ管理者
+- **user**: 通常ユーザー（フォルダ作成、ファイル共有が可能）
+- **guest**: ゲストユーザー（制限付きアクセス）
+
+### 権限一覧
+- `manage_users`: ユーザーアカウントの管理
+- `manage_roles`: ロールの割り当てと管理
+- `view_all_files`: 全ファイルの閲覧
+- `delete_all_files`: 任意のファイルの削除
+- `manage_system`: システム設定へのアクセス
+- `create_folders`: フォルダの作成
+- `delete_folders`: フォルダの削除
+- `share_files`: ファイルの共有
+- `manage_tags`: タグの管理
+- `moderate_comments`: コメントの管理
+
+### ファイル権限
+個別のファイルに対して以下の権限を付与可能：
+- `view`: ファイルの閲覧
+- `edit`: ファイルの編集
+- `delete`: ファイルの削除
+- `share`: ファイルの共有権限の付与
 
 ## よく使うコマンド
 
@@ -291,20 +330,19 @@ VITE_API_URL=http://localhost:3001
 
 ## 最後に開発したセッションの情報
 
-- **日時**: 2025-09-24
+- **日時**: 2025-09-26
 - **実装内容**:
-  - バージョン管理機能の実装
-  - file_versionsテーブルの作成
-  - バージョン履歴の保存と管理
-  - バージョンAPI（/api/files/:id/versions）の実装
-  - ファイルの新バージョンアップロード機能
-  - バージョン間の比較機能
-  - 特定バージョンへの復元機能
-  - バージョンのダウンロード・削除機能
-  - FileVersionsコンポーネント（FileVersions.tsx）の作成
-  - ダッシュボードにバージョン管理ボタン追加
-- **ブランチ**: feature/version-control
-- **次回予定**: ユーザー権限管理機能の実装を推奨
+  - ユーザー権限管理機能の実装
+  - permissions、role_permissions、file_permissionsテーブルの作成
+  - ロールベースのアクセス制御（RBAC）の実装
+  - 権限管理API（/api/permissions、/api/roles）の実装
+  - ファイル単位の権限付与機能
+  - 権限チェックミドルウェアの実装
+  - UserManagementコンポーネント（管理者向けUI）の作成
+  - FilePermissionsコンポーネント（ファイル権限管理UI）の作成
+  - ダッシュボードに管理者メニューと権限ボタン追加
+- **ブランチ**: feature/user-permissions
+- **次回予定**: すべての主要機能が実装済み。パフォーマンス最適化や追加機能の検討
 
 ---
 

@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fileService, tagService } from '../services/api'
 import FilePreview from '../components/FilePreview'
 import FileVersions from '../components/FileVersions'
+import FilePermissions from '../components/FilePermissions'
+import UserManagement from '../components/UserManagement'
 
 export default function Dashboard() {
   const queryClient = useQueryClient()
@@ -21,6 +23,9 @@ export default function Dashboard() {
   const [previewFile, setPreviewFile] = useState<any | null>(null)
   const [publicLinkModal, setPublicLinkModal] = useState<{ fileId: string; publicId: string | null; isPublic: boolean } | null>(null)
   const [versionsFile, setVersionsFile] = useState<number | null>(null)
+  const [permissionsFile, setPermissionsFile] = useState<{ id: number; name: string } | null>(null)
+  const [showUserManagement, setShowUserManagement] = useState(false)
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   const { data: files, isLoading } = useQuery({
     queryKey: ['files', searchQuery, selectedTagFilter, selectedTypeFilter],
@@ -34,6 +39,27 @@ export default function Dashboard() {
       }
     },
   })
+
+  useEffect(() => {
+    // Get current user's role
+    const fetchUserRole = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch('/api/users/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setUserRole(data.role || 'user')
+        }
+      } catch (error) {
+        console.error('Error fetching user role:', error)
+      }
+    }
+    fetchUserRole()
+  }, [])
 
   const { data: tags = [] } = useQuery({
     queryKey: ['tags'],
@@ -361,12 +387,22 @@ export default function Dashboard() {
 
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-semibold">Your Files</h3>
-            <button
-              onClick={() => setShowTagManager(true)}
-              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-            >
-              Manage Tags
-            </button>
+            <div className="flex gap-2">
+              {userRole === 'admin' && (
+                <button
+                  onClick={() => setShowUserManagement(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  User Management
+                </button>
+              )}
+              <button
+                onClick={() => setShowTagManager(true)}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+              >
+                Manage Tags
+              </button>
+            </div>
           </div>
           {isLoading ? (
             <p>Loading files...</p>
@@ -406,6 +442,12 @@ export default function Dashboard() {
                         className="px-3 py-1 bg-cyan-500 text-white text-sm rounded hover:bg-cyan-600"
                       >
                         Versions
+                      </button>
+                      <button
+                        onClick={() => setPermissionsFile({ id: file.id, name: file.original_name })}
+                        className="px-3 py-1 bg-orange-500 text-white text-sm rounded hover:bg-orange-600"
+                      >
+                        Permissions
                       </button>
                       <button
                         onClick={() => handleEditTags(file.id)}
@@ -706,6 +748,31 @@ export default function Dashboard() {
           fileId={versionsFile}
           onClose={() => setVersionsFile(null)}
         />
+      )}
+
+      {permissionsFile && (
+        <FilePermissions
+          fileId={permissionsFile.id}
+          fileName={permissionsFile.name}
+          onClose={() => setPermissionsFile(null)}
+        />
+      )}
+
+      {showUserManagement && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">Admin Panel</h2>
+              <button
+                onClick={() => setShowUserManagement(false)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+            <UserManagement />
+          </div>
+        </div>
       )}
 
     </div>

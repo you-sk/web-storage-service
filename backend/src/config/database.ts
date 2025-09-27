@@ -186,8 +186,125 @@ export const initializeDatabase = (): Promise<void> => {
               reject(err);
               return;
             }
-            console.log('Database tables created successfully');
-            resolve();
+
+            // Add role column to users table if it doesn't exist
+            db.run(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'`, (err) => {
+              if (err && !err.message.includes('duplicate column name')) {
+                console.error('Error adding role column:', err);
+              }
+            });
+
+            // Create permissions table
+            db.run(`
+              CREATE TABLE IF NOT EXISTS permissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                description TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+              )
+            `, (err) => {
+              if (err) {
+                console.error('Error creating permissions table:', err);
+                reject(err);
+                return;
+              }
+
+              // Create role_permissions junction table
+              db.run(`
+                CREATE TABLE IF NOT EXISTS role_permissions (
+                  role TEXT NOT NULL,
+                  permission_id INTEGER NOT NULL,
+                  PRIMARY KEY (role, permission_id),
+                  FOREIGN KEY (permission_id) REFERENCES permissions (id) ON DELETE CASCADE
+                )
+              `, (err) => {
+                if (err) {
+                  console.error('Error creating role_permissions table:', err);
+                  reject(err);
+                  return;
+                }
+
+                // Create file_permissions table for granular file access control
+                db.run(`
+                  CREATE TABLE IF NOT EXISTS file_permissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    file_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    permission TEXT NOT NULL CHECK(permission IN ('view', 'edit', 'delete', 'share')),
+                    granted_by INTEGER NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (file_id) REFERENCES files (id) ON DELETE CASCADE,
+                    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                    FOREIGN KEY (granted_by) REFERENCES users (id),
+                    UNIQUE (file_id, user_id, permission)
+                  )
+                `, (err) => {
+                  if (err) {
+                    console.error('Error creating file_permissions table:', err);
+                    reject(err);
+                    return;
+                  }
+
+                  // Insert default permissions
+                  const defaultPermissions = [
+                    ['manage_users', 'Create, update, and delete user accounts'],
+                    ['manage_roles', 'Assign and revoke user roles'],
+                    ['view_all_files', 'View all files in the system'],
+                    ['delete_all_files', 'Delete any file in the system'],
+                    ['manage_system', 'Access to system configuration and settings'],
+                    ['create_folders', 'Create new folders'],
+                    ['delete_folders', 'Delete folders'],
+                    ['share_files', 'Share files with other users'],
+                    ['manage_tags', 'Create and delete tags'],
+                    ['moderate_comments', 'Edit or delete any comment']
+                  ];
+
+                  let insertCount = 0;
+                  defaultPermissions.forEach(([name, description]) => {
+                    db.run(
+                      `INSERT OR IGNORE INTO permissions (name, description) VALUES (?, ?)`,
+                      [name, description],
+                      (err) => {
+                        if (err) {
+                          console.error(`Error inserting permission ${name}:`, err);
+                        }
+                        insertCount++;
+                        if (insertCount === defaultPermissions.length) {
+                          // Assign all permissions to admin role
+                          db.run(
+                            `INSERT OR IGNORE INTO role_permissions (role, permission_id)
+                             SELECT 'admin', id FROM permissions`,
+                            (err) => {
+                              if (err) {
+                                console.error('Error assigning admin permissions:', err);
+                              }
+
+                              // Assign basic permissions to user role
+                              const userPermissions = ['create_folders', 'share_files'];
+                              userPermissions.forEach(permission => {
+                                db.run(
+                                  `INSERT OR IGNORE INTO role_permissions (role, permission_id)
+                                   SELECT 'user', id FROM permissions WHERE name = ?`,
+                                  [permission],
+                                  (err) => {
+                                    if (err) {
+                                      console.error(`Error assigning user permission ${permission}:`, err);
+                                    }
+                                  }
+                                );
+                              });
+
+                              console.log('Database tables created successfully');
+                              resolve();
+                            }
+                          );
+                        }
+                      }
+                    );
+                  });
+                });
+              });
+            });
           });
         });
       });
